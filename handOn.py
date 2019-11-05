@@ -35,7 +35,12 @@ def extractInfo(ageData):
     ageData = ageData.join(ageDataEmb)
     ageData = ageData.drop(["Sex", "Embarked"], axis=1)
     print(ageData.info())
+<<<<<<< HEAD
     X = ageData[["Pclass", "Parch", "Fare", "SibSp", "Embarked_C", "Embarked_Q", "Embarked_S", "Sex_male", "Sex_female"]]
+=======
+    X = ageData[["Pclass", "Parch", "Fare", "Survived", "SibSp", "Embarked_C", "Embarked_Q", "Embarked_S",
+                 "Sex_male", "Sex_female"]]
+>>>>>>> eda2c2f9304aeaa488e8434d365f46a1155c7fac
     Y = ageData["Survived"]
     return X, Y
 
