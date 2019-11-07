@@ -5,7 +5,7 @@ import sklearn as sk
 from sklearn.model_selection import train_test_split
 from sklearn import linear_model, tree
 from sklearn.externals import joblib
-
+import sklearn.preprocessing as preprocessing
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_rows', None)
@@ -17,7 +17,7 @@ withOutName = df.drop(["Name", "Cabin", "Ticket"], axis=1)  # 去掉年龄和住
 print(withOutName.info())
 print(withOutName.describe())
 
-print(withOutName[withOutName.isnull().values==True].drop_duplicates())
+print(withOutName[withOutName.isnull().values == True].drop_duplicates())
 # print(withOutName[['Ticket', 'Pclass']].sort_values(by=['Pclass']))
 withOutName['Embarked'].fillna('S', inplace=True)
 print(withOutName.info())
@@ -44,6 +44,9 @@ def extractInfo(ageData):
 
 X, Y = extractInfo(ageData)
 px, py = extractInfo(agePredictData)
+print('the X is: ', X)
+# scaler = preprocessing.StandardScaler()
+# age_scale_param = scaler.fit(X['Age'])
 # print(px)
 trainX, testX, trainY, testY = train_test_split(X.values, Y.values, test_size=0.25, random_state=0)
 # reg = linear_model.Ridge(alpha=0.5)# print(result.info())
@@ -54,22 +57,22 @@ print(y_predict)
 for i in range(len(y_predict)):
     if y_predict[i] < 0:
         y_predict[i] = y_predict[i] * -1
-print(y_predict)
+# print(y_predict)
 agePredictData["Age"] = y_predict
 totalData = [agePredictData, ageData]
 result = pd.concat(totalData)
 
 x, y = extractInfo(result)
-print("the x des is: ", x.describe())
-print(y.values)
+# print("the x des is: ", x.describe())
+# print(y.values)
 train_x, test_x, train_y, test_y = train_test_split(x.values, y.values, test_size=0.1)
 clf = tree.DecisionTreeClassifier()
 clf.fit(train_x, train_y)
 joblib.dump(clf, "./model/train_model.m")
 score = clf.score(test_x, test_y)
-print("the result is: ", score)
+# print("the result is: ", score)
 
-
+# import sklearn.preprocessing as preprocessing
 
 
 
