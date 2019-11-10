@@ -3,8 +3,11 @@ import pandas as pd
 from pandas import DataFrame
 from patsy import dmatrices
 import string
+import matplotlib.pyplot as plt
 from operator import itemgetter
 import json
+import seaborn as sns
+
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
@@ -14,6 +17,7 @@ from sklearn import preprocessing
 from sklearn.metrics import classification_report
 from sklearn.externals import joblib
 
+pd.set_option('display.max_columns', None)
 ##Read configuration parameters
 
 train_file = "./data/train.csv"
@@ -37,6 +41,7 @@ def substrings_in_string(big_string, substrings):
 
 le = preprocessing.LabelEncoder()
 enc = preprocessing.OneHotEncoder()
+scaler = preprocessing.StandardScaler()
 
 
 def clean_and_munge_data(df):
@@ -114,6 +119,7 @@ def clean_and_munge_data(df):
     # Age times class
     df['AgeClass'] = df['AgeFill'] * df['Pclass']
     df['ClassFare'] = df['Pclass'] * df['Fare_Per_Person']
+    df['AgeSqure'] = df["AgeFill"].apply(lambda x: x ** 2)
 
     df['HighLow'] = df['Pclass']
     df.loc[(df.Fare_Per_Person < 8), 'HighLow'] = 'Low'
@@ -143,27 +149,49 @@ def clean_and_munge_data(df):
     x_emb = le.transform(df['Embarked'])
     df['Embarked'] = x_emb.astype(np.float)
 
-    df = df.drop(['PassengerId', 'Name', 'Age'], axis=1)  # remove Name, Age and PassengerId
+    age_scale_param = scaler.fit(df[['AgeClass']])
+    df['Age_scaled'] = scaler.fit_transform(df[['AgeClass']], age_scale_param)
 
+    fare_scale_param = scaler.fit(df[['Fare_Per_Person']])
+    df['Fare_Person_scaled'] = scaler.fit_transform(df[['Fare_Per_Person']], fare_scale_param)
+
+    ticket_scale_param = scaler.fit(df[['Ticket']])
+    df['Ticket_scaled'] = scaler.fit_transform(df[['Ticket']], ticket_scale_param)
+
+    fare1_scale_param = scaler.fit(df[['Fare']])
+    df['Fare_scaled'] = scaler.fit_transform(df[['Fare']], fare1_scale_param)
+
+    fare_scale_param = scaler.fit(df[['ClassFare']])
+    df['Class_scaled'] = scaler.fit_transform(df[['ClassFare']], fare_scale_param)
+
+    age_scale_param = scaler.fit(df[['AgeSqure']])
+    df['Age_suqre_scaled'] = scaler.fit_transform(df[['AgeSqure']], age_scale_param)
+    df['Name_length'] = df["Name"].apply(len)
+
+    df = df.drop(['PassengerId', 'Name', 'Age', "ClassFare", 'Ticket', 'Fare_Per_Person'],
+                 axis=1)  # remove Name, Age and PassengerId
     return df
 
 
 # 读取数据
 traindf = pd.read_csv(train_file)
 testdf = pd.read_csv(test_file)
-##清洗数据
-df = clean_and_munge_data(traindf)
-df_test = clean_and_munge_data(testdf)
-########################################formula################################
 
-formula_ml = 'Survived~Pclass+C(Title)+Sex+C(AgeCat)+Fare_Per_Person+Fare+Family_Size'
+# 清洗数据
+df = clean_and_munge_data(traindf)
+# print(df.describe())
+
+# #######################################formula################################
+
+formula_ml = 'Survived~Pclass+C(Title)+Sex+C(AgeCat)+Fare_Person_scaled+Fare+Family_Size+Age_suqre_scaled+Ticket_scaled' \
+             '+Embarked+AgeClass+Name_length'
 
 y_train, x_train = dmatrices(formula_ml, data=df, return_type='dataframe')
 y_train = np.asarray(y_train).ravel()
-print(x_train)
+print('the train data\n', x_train.describe())
 print("the y train shape is: ", y_train.shape, x_train.shape)
 
-##选择训练和测试集
+# 选择训练和测试集
 X_train, X_test, Y_train, Y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=seed)
 # 初始化分类器
 clf = RandomForestClassifier(n_estimators=500, criterion='entropy', max_depth=5, min_samples_split=2,
@@ -171,17 +199,18 @@ clf = RandomForestClassifier(n_estimators=500, criterion='entropy', max_depth=5,
                              random_state=seed,
                              verbose=0)
 
-###grid search找到最好的参数
+# grid search找到最好的参数
 param_grid = dict()
-# ##创建分类pipeline
+# 创建分类pipeline
 pipeline = Pipeline([('clf', clf)])
 grid_search = GridSearchCV(pipeline, param_grid=param_grid, verbose=3, scoring='accuracy',
                            cv=StratifiedShuffleSplit(test_size=0.2, random_state=seed)).fit(X_train, Y_train)
 # 对结果打分
+print("*" * 40)
 print("Best score: %0.3f" % grid_search.best_score_)
 print(grid_search.best_estimator_)
 
-print('-----grid search end------------')
+print('-----grid search enddata_train------------')
 print('on all train set')
 scores = cross_val_score(grid_search.best_estimator_, x_train, y_train, cv=3, scoring='accuracy')
 print(scores.mean(), scores)
@@ -190,7 +219,6 @@ scores = cross_val_score(grid_search.best_estimator_, X_test, Y_test, cv=3, scor
 print(scores.mean(), scores)
 
 # 对结果打分
-
 print(classification_report(Y_train, grid_search.best_estimator_.predict(X_train)))
 print('test data')
 print(classification_report(Y_test, grid_search.best_estimator_.predict(X_test)))
@@ -198,27 +226,29 @@ print(classification_report(Y_test, grid_search.best_estimator_.predict(X_test))
 model_file = MODEL_PATH + 'model-rf.pkl'
 joblib.dump(grid_search.best_estimator_, model_file)
 
-# import numpy as np
-# from sklearn.model_selection import StratifiedShuffleSplit
-# X = np.array([[1, 2], [3, 4], [3, 2], [2, 4], [5, 2], [5, 4]])
-# y = np.array([0, 0, 0, 1, 1, 1])
-# sss = StratifiedShuffleSplit(n_splits=6, test_size=0.2, random_state=0)
-# sss.get_n_splits(X, y)
-#
-# for train_index, test_index in sss.split(X, y):
-#     print("TRAIN:\n", X[train_index])
-#     print("label\n", y[train_index])
-#     print("TEST:\n", X[test_index])
-#     print("*"*5)
-
+df_test = clean_and_munge_data(testdf)
 df_test["Survived"] = 0
-print(df_test.info())
 
-formula_ml = 'Survived~Pclass+C(Title)+Sex+C(AgeCat)+Fare_Per_Person+Fare+Family_Size'
-
+# formula_ml = 'Survived~Pclass+C(Title)+Sex+C(AgeCat)+Fare_Person_scaled+Fare_scaled+Family_Size'
 y_test, x_test = dmatrices(formula_ml, data=df_test, return_type='dataframe')
-y_train = np.asarray(y_train).ravel()
-y_predict = grid_search.predict(x_test)
+best = grid_search.best_estimator_
+y_predict = best.predict(x_test)
 result = pd.DataFrame({"PassengerId": testdf['PassengerId'].values, "Survived": y_predict.astype(np.int32)})
-result.to_csv('./result_gridCV.csv', index=False)
-# print("the y train shape is: ", x_train.shape)
+result.to_csv('./result_gridCV_best.csv', index=False)
+
+
+#
+def plot_NameLengthSurvived():
+
+    fig, axis1 = plt.subplots(1, 1, figsize=(18, 4))
+    traindf['Name_length'] = traindf['Name'].apply(lambda x: len(x))
+    name_length = traindf[['Name_length', 'Survived']].groupby(['Name_length'], as_index=False).mean()
+    # name_length.plot(kind='bar')
+    sns.barplot(x='Name_length', y='Survived', data=name_length)  # 这个画法非常
+    # plt.title("name length of survived")
+    # plt.xlabel('name_length')
+    # plt.ylabel('survived')
+    plt.show()
+
+
+plot_NameLengthSurvived()
