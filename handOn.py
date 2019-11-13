@@ -5,6 +5,7 @@ import sklearn as sk
 from sklearn.model_selection import train_test_split
 from sklearn import linear_model, tree
 from sklearn.externals import joblib
+from sklearn.ensemble import RandomForestRegressor
 import sklearn.preprocessing as preprocessing
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 1000)

@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 
 plt.rcParams['font.sans-serif'] = ['simhei']
 data_train = pd.read_csv("./train.csv")
+print(data_train.describe())
+print(data_train.info())
 fig = plt.figure()
 fig.set(alpha=0.2)  # 设定图表颜色alpha参数
 
