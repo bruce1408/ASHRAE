@@ -129,6 +129,23 @@ def clean_and_munge_data(df):
     x_sex = le.transform(df['Sex'])
     df['Sex'] = x_sex.astype(np.float)
 
+    # 对船票是否共享来新建一个特征
+    dt = df["Ticket"].value_counts()
+    data1 = pd.DataFrame(dt)
+    share = data1[data1["Ticket"] > 1]
+    share_ticket = share.index.values
+    tickets = df.Ticket.values
+    result = []
+    for ticket in tickets:
+        if ticket in share_ticket:
+            ticket = 1
+        else:
+            ticket = 0
+        result.append(ticket)
+    results = pd.DataFrame(result)
+    results.columns = ["Ticket_share"]
+    df = pd.concat([df, results], axis=1)
+
     le.fit(df['Ticket'])
     x_Ticket = le.transform(df['Ticket'])
     df['Ticket'] = x_Ticket.astype(np.float)
@@ -168,7 +185,7 @@ def clean_and_munge_data(df):
     df['Age_suqre_scaled'] = scaler.fit_transform(df[['AgeSqure']], age_scale_param)
     df['Name_length'] = df["Name"].apply(len)
 
-    df = df.drop(['PassengerId', 'Name', 'Age', "ClassFare", 'Ticket', 'Fare_Per_Person'],
+    df = df.drop(['PassengerId', 'Name', 'Age', "ClassFare", 'Fare_Per_Person'],
                  axis=1)  # remove Name, Age and PassengerId
     return df
 
@@ -184,7 +201,7 @@ df = clean_and_munge_data(traindf)
 # #######################################formula################################
 
 formula_ml = 'Survived~Pclass+C(Title)+Sex+C(AgeCat)+Fare_Person_scaled+Fare+Family_Size+Age_suqre_scaled+Ticket_scaled' \
-             '+Embarked+AgeClass+Name_length'
+             '+Embarked+AgeClass+Name_length+Ticket_share'
 
 y_train, x_train = dmatrices(formula_ml, data=df, return_type='dataframe')
 y_train = np.asarray(y_train).ravel()
@@ -205,24 +222,67 @@ param_grid = dict()
 pipeline = Pipeline([('clf', clf)])
 grid_search = GridSearchCV(pipeline, param_grid=param_grid, verbose=3, scoring='accuracy',
                            cv=StratifiedShuffleSplit(test_size=0.2, random_state=seed)).fit(X_train, Y_train)
-# 对结果打分
-print("*" * 40)
-print("Best score: %0.3f" % grid_search.best_score_)
-print(grid_search.best_estimator_)
 
-print('-----grid search enddata_train------------')
-print('on all train set')
-scores = cross_val_score(grid_search.best_estimator_, x_train, y_train, cv=3, scoring='accuracy')
-print(scores.mean(), scores)
-print('on test set')
-scores = cross_val_score(grid_search.best_estimator_, X_test, Y_test, cv=3, scoring='accuracy')
-print(scores.mean(), scores)
 
 # 对结果打分
-print(classification_report(Y_train, grid_search.best_estimator_.predict(X_train)))
-print('test data')
-print(classification_report(Y_test, grid_search.best_estimator_.predict(X_test)))
+def resultAnalyse():
+    print("*" * 40)
+    print("Best score: %0.3f" % grid_search.best_score_)
+    print(grid_search.best_estimator_)
 
+    print('-----grid search enddata_train------------')
+    print('on all train set')
+    scores = cross_val_score(grid_search.best_estimator_, x_train, y_train, cv=3, scoring='accuracy')
+    print(scores.mean(), scores)
+    print('on test set')
+    scores = cross_val_score(grid_search.best_estimator_, X_test, Y_test, cv=3, scoring='accuracy')
+    print(scores.mean(), scores)
+
+    # 对结果打分
+    print(classification_report(Y_train, grid_search.best_estimator_.predict(X_train)))
+    print('test data')
+    print(classification_report(Y_test, grid_search.best_estimator_.predict(X_test)))
+
+
+resultAnalyse()
+# 模型融合
+def fill_missing_age(missing_age_train, missing_age_test):
+    from sklearn import ensemble
+    missing_age_X_train = missing_age_train.drop(['Age'], axis=1)
+    missing_age_Y_train = missing_age_train['Age']
+    missing_age_X_test = missing_age_test.drop(['Age'], axis=1)
+    # 模型1
+    gbm_reg = ensemble.GradientBoostingRegressor(random_state=42)
+    gbm_reg_param_grid = {'n_estimators': [2000], 'max_depth': [3], 'learning_rate': [0.01], 'max_features': [3]}
+    gbm_reg_grid = GridSearchCV(gbm_reg, gbm_reg_param_grid, cv=10, n_jobs=25, verbose=1,
+                                                scoring='neg_mean_squared_error')
+    gbm_reg_grid.fit(missing_age_X_train, missing_age_Y_train)
+    print('Age feature Best GB Params:' + str(gbm_reg_grid.best_params_))
+    print('Age feature Best GB Score:' + str(gbm_reg_grid.best_score_))
+    print('GB Train Error for "Age" Feature Regressor:' + str(
+        gbm_reg_grid.score(missing_age_X_train, missing_age_Y_train)))
+    missing_age_test['Age_GB'] = gbm_reg_grid.predict(missing_age_X_test)
+    print(missing_age_test['Age_GB'][:4])
+    # 模型2
+    lrf_reg = LinearRegression()
+    lrf_reg_param_grid = {'fit_intercept': [True], 'normalize': [True]}
+    lrf_reg_grid = model_selection.GridSearchCV(lrf_reg, lrf_reg_param_grid, cv=10, n_jobs=25, verbose=1,
+                                                scoring='neg_mean_squared_error')
+    lrf_reg_grid.fit(missing_age_X_train, missing_age_Y_train)
+    print('Age feature Best LR Params:' + str(lrf_reg_grid.best_params_))
+    print('Age feature Best LR Score:' + str(lrf_reg_grid.best_score_))
+    print('LR Train Error for "Age" Feature Regressor' + str(
+        lrf_reg_grid.score(missing_age_X_train, missing_age_Y_train)))
+    missing_age_test['Age_LRF'] = lrf_reg_grid.predict(missing_age_X_test)
+    print(missing_age_test['Age_LRF'][:4])
+    # 将两个模型预测后的均值作为最终预测结果
+    print('shape1', missing_age_test['Age'].shape, missing_age_test[['Age_GB', 'Age_LRF']].mode(axis=1).shape)
+    # missing_age_test['Age'] = missing_age_test[['Age_GB','Age_LRF']].mode(axis=1)
+    missing_age_test['Age'] = np.mean([missing_age_test['Age_GB'], missing_age_test['Age_LRF']])
+    print(missing_age_test['Age'][:4])
+    drop_col_not_req(missing_age_test, ['Age_GB', 'Age_LRF'])
+
+    return missing_age_test
 model_file = MODEL_PATH + 'model-rf.pkl'
 joblib.dump(grid_search.best_estimator_, model_file)
 
@@ -237,7 +297,6 @@ result = pd.DataFrame({"PassengerId": testdf['PassengerId'].values, "Survived": 
 result.to_csv('./result_gridCV_best.csv', index=False)
 
 
-#
 def plot_NameLengthSurvived():
 
     fig, axis1 = plt.subplots(1, 1, figsize=(18, 4))
