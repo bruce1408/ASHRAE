@@ -266,7 +266,7 @@ def fill_missing_age(missing_age_train, missing_age_test):
     # 模型2
     lrf_reg = LinearRegression()
     lrf_reg_param_grid = {'fit_intercept': [True], 'normalize': [True]}
-    lrf_reg_grid = model_selection.GridSearchCV(lrf_reg, lrf_reg_param_grid, cv=10, n_jobs=25, verbose=1,
+    lrf_reg_grid = GridSearchCV(lrf_reg, lrf_reg_param_grid, cv=10, n_jobs=25, verbose=1,
                                                 scoring='neg_mean_squared_error')
     lrf_reg_grid.fit(missing_age_X_train, missing_age_Y_train)
     print('Age feature Best LR Params:' + str(lrf_reg_grid.best_params_))
