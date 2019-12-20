@@ -2,27 +2,18 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from patsy import dmatrices
-<<<<<<< HEAD
-=======
 import xgboost as xgb
 from sklearn.linear_model import LinearRegression
->>>>>>> df65f15a7b5cb76d5fb4a2488cff8b0f9d5377c4
 import string
 import matplotlib.pyplot as plt
 from operator import itemgetter
 import json
-<<<<<<< HEAD
-import seaborn as sns
-
-from sklearn.ensemble import RandomForestClassifier
-=======
 import warnings
 warnings.filterwarnings(action='ignore')
 from sklearn.svm import SVC
 import seaborn as sns
 from sklearn.model_selection import KFold
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier
->>>>>>> df65f15a7b5cb76d5fb4a2488cff8b0f9d5377c4
 from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
@@ -41,9 +32,6 @@ SUBMISSION_PATH = "./"
 seed = 0
 
 
-<<<<<<< HEAD
-# print(train_file, seed)
-=======
 def plot_NameLengthSurvived():
     """
     画图
@@ -60,7 +48,6 @@ def plot_NameLengthSurvived():
     plt.show()
 
 # plot_NameLengthSurvived()
->>>>>>> df65f15a7b5cb76d5fb4a2488cff8b0f9d5377c4
 
 
 # 清理和处理数据
@@ -77,11 +64,7 @@ enc = preprocessing.OneHotEncoder()
 scaler = preprocessing.StandardScaler()
 
 
-<<<<<<< HEAD
-def clean_and_munge_data(df):
-=======
 def clean_and_munge_data(df, testPredict=False):
->>>>>>> df65f15a7b5cb76d5fb4a2488cff8b0f9d5377c4
     # 处理缺省值
     df.Fare = df.Fare.map(lambda x: np.nan if x == 0 else x)  # 价格如果缺省的话，直接用0来代替
     # 处理一下名字，生成Title字段
@@ -222,10 +205,6 @@ def clean_and_munge_data(df, testPredict=False):
     df['Age_suqre_scaled'] = scaler.fit_transform(df[['AgeSqure']], age_scale_param)
     df['Name_length'] = df["Name"].apply(len)
 
-<<<<<<< HEAD
-    df = df.drop(['PassengerId', 'Name', 'Age', "ClassFare", 'Fare_Per_Person'],
-                 axis=1)  # remove Name, Age and PassengerId
-=======
     # remove Name, Age and PassengerId
     # dropColumns = ['PassengerId', 'Name', 'Age', "ClassFare", 'Fare_Per_Person', 'AgeFill', 'Family', 'Ticket', 'Gender']
     # df = df.drop(dropColumns, axis=1)
@@ -237,7 +216,6 @@ def clean_and_munge_data(df, testPredict=False):
              'Ticket_scaled', 'Embarked', 'AgeClass']]
     # print(df.corr())
     # print(df)
->>>>>>> df65f15a7b5cb76d5fb4a2488cff8b0f9d5377c4
     return df
 
 
@@ -247,19 +225,6 @@ testdf = pd.read_csv(test_file)
 
 # 清洗数据
 df = clean_and_munge_data(traindf)
-<<<<<<< HEAD
-# print(df.describe())
-
-# #######################################formula################################
-
-formula_ml = 'Survived~Pclass+C(Title)+Sex+C(AgeCat)+Fare_Person_scaled+Fare+Family_Size+Age_suqre_scaled+Ticket_scaled' \
-             '+Embarked+AgeClass+Name_length+Ticket_share'
-
-y_train, x_train = dmatrices(formula_ml, data=df, return_type='dataframe')
-y_train = np.asarray(y_train).ravel()
-print('the train data\n', x_train.describe())
-print("the y train shape is: ", y_train.shape, x_train.shape)
-=======
 # print('the train data info is:\n', df.columns)
 # #######################################formula################################
 # formula_ml = 'Survived~Pclass+C(Title)+Sex+C(AgeCat)+Fare_Person_scaled+Fare+Family_Size+Age_suqre_scaled+Ticket_scaled' \
@@ -276,17 +241,12 @@ x_train = df.values[:, 1:]
 print(x_train.shape)
 y_train = np.asarray(y_train).ravel()
 # print(y_train.shape)
->>>>>>> df65f15a7b5cb76d5fb4a2488cff8b0f9d5377c4
 
 # 选择训练和测试集
 X_train, X_test, Y_train, Y_test = train_test_split(x_train, y_train, test_size=0.2, random_state=seed)
 # 初始化分类器
 clf = RandomForestClassifier(n_estimators=500, criterion='entropy', max_depth=5, min_samples_split=2,
-<<<<<<< HEAD
-                             min_samples_leaf=1, max_features='auto', bootstrap=False, oob_score=False, n_jobs=1,
-=======
                              min_samples_leaf=1, max_features='auto', bootstrap=True, oob_score=False, n_jobs=1,
->>>>>>> df65f15a7b5cb76d5fb4a2488cff8b0f9d5377c4
                              random_state=seed,
                              verbose=0)
 
@@ -294,36 +254,21 @@ clf = RandomForestClassifier(n_estimators=500, criterion='entropy', max_depth=5,
 param_grid = dict()
 # 创建分类pipeline
 pipeline = Pipeline([('clf', clf)])
-<<<<<<< HEAD
-grid_search = GridSearchCV(pipeline, param_grid=param_grid, verbose=3, scoring='accuracy',
-                           cv=StratifiedShuffleSplit(test_size=0.2, random_state=seed)).fit(X_train, Y_train)
-
-
-=======
 grid_search = GridSearchCV(clf, param_grid=param_grid, verbose=3, scoring='accuracy',
                            cv=StratifiedShuffleSplit(test_size=0.2, random_state=seed)).fit(X_train, Y_train)
 
 
 best_params = grid_search.best_estimator_.get_params()
 
->>>>>>> df65f15a7b5cb76d5fb4a2488cff8b0f9d5377c4
 # 对结果打分
 def resultAnalyse():
     print("*" * 40)
     print("Best score: %0.3f" % grid_search.best_score_)
     print(grid_search.best_estimator_)
-<<<<<<< HEAD
-
-    print('-----grid search enddata_train------------')
-    print('on all train set')
-    scores = cross_val_score(grid_search.best_estimator_, x_train, y_train, cv=3, scoring='accuracy')
-    print(scores.mean(), scores)
-=======
     print('-----grid search enddata_train------------')
     print('on all train set')
     scores = cross_val_score(grid_search.best_estimator_, x_train, y_train, cv=3, scoring='accuracy')
     print('the score mean {} and the socre is {}: '.format(scores.mean(), scores))
->>>>>>> df65f15a7b5cb76d5fb4a2488cff8b0f9d5377c4
     print('on test set')
     scores = cross_val_score(grid_search.best_estimator_, X_test, Y_test, cv=3, scoring='accuracy')
     print(scores.mean(), scores)
@@ -334,75 +279,6 @@ def resultAnalyse():
     print(classification_report(Y_test, grid_search.best_estimator_.predict(X_test)))
 
 
-<<<<<<< HEAD
-resultAnalyse()
-# 模型融合
-def fill_missing_age(missing_age_train, missing_age_test):
-    from sklearn import ensemble
-    missing_age_X_train = missing_age_train.drop(['Age'], axis=1)
-    missing_age_Y_train = missing_age_train['Age']
-    missing_age_X_test = missing_age_test.drop(['Age'], axis=1)
-    # 模型1
-    gbm_reg = ensemble.GradientBoostingRegressor(random_state=42)
-    gbm_reg_param_grid = {'n_estimators': [2000], 'max_depth': [3], 'learning_rate': [0.01], 'max_features': [3]}
-    gbm_reg_grid = GridSearchCV(gbm_reg, gbm_reg_param_grid, cv=10, n_jobs=25, verbose=1,
-                                                scoring='neg_mean_squared_error')
-    gbm_reg_grid.fit(missing_age_X_train, missing_age_Y_train)
-    print('Age feature Best GB Params:' + str(gbm_reg_grid.best_params_))
-    print('Age feature Best GB Score:' + str(gbm_reg_grid.best_score_))
-    print('GB Train Error for "Age" Feature Regressor:' + str(
-        gbm_reg_grid.score(missing_age_X_train, missing_age_Y_train)))
-    missing_age_test['Age_GB'] = gbm_reg_grid.predict(missing_age_X_test)
-    print(missing_age_test['Age_GB'][:4])
-    # 模型2
-    lrf_reg = LinearRegression()
-    lrf_reg_param_grid = {'fit_intercept': [True], 'normalize': [True]}
-    lrf_reg_grid = GridSearchCV(lrf_reg, lrf_reg_param_grid, cv=10, n_jobs=25, verbose=1,
-                                                scoring='neg_mean_squared_error')
-    lrf_reg_grid.fit(missing_age_X_train, missing_age_Y_train)
-    print('Age feature Best LR Params:' + str(lrf_reg_grid.best_params_))
-    print('Age feature Best LR Score:' + str(lrf_reg_grid.best_score_))
-    print('LR Train Error for "Age" Feature Regressor' + str(
-        lrf_reg_grid.score(missing_age_X_train, missing_age_Y_train)))
-    missing_age_test['Age_LRF'] = lrf_reg_grid.predict(missing_age_X_test)
-    print(missing_age_test['Age_LRF'][:4])
-    # 将两个模型预测后的均值作为最终预测结果
-    print('shape1', missing_age_test['Age'].shape, missing_age_test[['Age_GB', 'Age_LRF']].mode(axis=1).shape)
-    # missing_age_test['Age'] = missing_age_test[['Age_GB','Age_LRF']].mode(axis=1)
-    missing_age_test['Age'] = np.mean([missing_age_test['Age_GB'], missing_age_test['Age_LRF']])
-    print(missing_age_test['Age'][:4])
-    drop_col_not_req(missing_age_test, ['Age_GB', 'Age_LRF'])
-
-    return missing_age_test
-model_file = MODEL_PATH + 'model-rf.pkl'
-joblib.dump(grid_search.best_estimator_, model_file)
-
-df_test = clean_and_munge_data(testdf)
-df_test["Survived"] = 0
-
-# formula_ml = 'Survived~Pclass+C(Title)+Sex+C(AgeCat)+Fare_Person_scaled+Fare_scaled+Family_Size'
-y_test, x_test = dmatrices(formula_ml, data=df_test, return_type='dataframe')
-best = grid_search.best_estimator_
-y_predict = best.predict(x_test)
-result = pd.DataFrame({"PassengerId": testdf['PassengerId'].values, "Survived": y_predict.astype(np.int32)})
-result.to_csv('./result_gridCV_best.csv', index=False)
-
-
-def plot_NameLengthSurvived():
-
-    fig, axis1 = plt.subplots(1, 1, figsize=(18, 4))
-    traindf['Name_length'] = traindf['Name'].apply(lambda x: len(x))
-    name_length = traindf[['Name_length', 'Survived']].groupby(['Name_length'], as_index=False).mean()
-    # name_length.plot(kind='bar')
-    sns.barplot(x='Name_length', y='Survived', data=name_length)  # 这个画法非常
-    # plt.title("name length of survived")
-    # plt.xlabel('name_length')
-    # plt.ylabel('survived')
-    plt.show()
-
-
-plot_NameLengthSurvived()
-=======
 # resultAnalyse()
 
 # 模型保存
@@ -612,4 +488,3 @@ predictions = gbm.predict(x_test_c)
 
 StackingSubmission = pd.DataFrame({'PassengerId': testdf['PassengerId'].values, 'Survived': predictions.astype(np.int32)})
 StackingSubmission.to_csv("StackingSubmission.csv", index=False)
->>>>>>> df65f15a7b5cb76d5fb4a2488cff8b0f9d5377c4
