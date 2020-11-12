@@ -84,7 +84,7 @@ result["Fare"].fillna(7.75, inplace=True)
 print('the result info is: \n', result.info())
 
 train_s, _ = featureBuild(result, "Age")
-clf = joblib.load("./model/train_model.m")
+clf = joblib.load("./model/train_model_v1.m")
 
 predict_ = clf.predict(train_s)
 print(predict_)

@@ -69,7 +69,7 @@ x, y = extractInfo(result)
 train_x, test_x, train_y, test_y = train_test_split(x.values, y.values, test_size=0.1)
 clf = tree.DecisionTreeClassifier()
 clf.fit(train_x, train_y)
-joblib.dump(clf, "./model/train_model.m")
+joblib.dump(clf, "./model/train_model_v1.m")
 score = clf.score(test_x, test_y)
 # print("the result is: ", score)
 
