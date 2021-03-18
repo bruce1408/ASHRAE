@@ -27,6 +27,7 @@ print(withOutName.info())
 agePredictData = withOutName[withOutName['Age'].isnull()]
 ageData = withOutName[withOutName['Age'].notnull()]
 
+
 def extractInfo(ageData):
 
     print(ageData.info())
@@ -36,7 +37,8 @@ def extractInfo(ageData):
     ageData = ageData.join(ageDataEmb)
     ageData = ageData.drop(["Sex", "Embarked"], axis=1)
     print(ageData.info())
-    X = ageData[["Pclass", "Parch", "Fare", "SibSp", "Embarked_C", "Embarked_Q", "Embarked_S", "Sex_male", "Sex_female"]]
+    X = ageData[["Pclass", "Parch", "Fare", "SibSp", "Embarked_C",
+                 "Embarked_Q", "Embarked_S", "Sex_male", "Sex_female"]]
     X = ageData[["Pclass", "Parch", "Fare", "Survived", "SibSp", "Embarked_C", "Embarked_Q", "Embarked_S",
                  "Sex_male", "Sex_female"]]
     Y = ageData["Survived"]
@@ -49,7 +51,8 @@ print('the X is: ', X)
 # scaler = preprocessing.StandardScaler()
 # age_scale_param = scaler.fit(X['Age'])
 # print(px)
-trainX, testX, trainY, testY = train_test_split(X.values, Y.values, test_size=0.25, random_state=0)
+trainX, testX, trainY, testY = train_test_split(
+    X.values, Y.values, test_size=0.25, random_state=0)
 # reg = linear_model.Ridge(alpha=0.5)# print(result.info())
 reg = linear_model.RidgeCV(alphas=[0.1, 1.0, 10.0])
 reg.fit(trainX, trainY)
@@ -66,7 +69,8 @@ result = pd.concat(totalData)
 x, y = extractInfo(result)
 # print("the x des is: ", x.describe())
 # print(y.values)
-train_x, test_x, train_y, test_y = train_test_split(x.values, y.values, test_size=0.1)
+train_x, test_x, train_y, test_y = train_test_split(
+    x.values, y.values, test_size=0.1)
 clf = tree.DecisionTreeClassifier()
 clf.fit(train_x, train_y)
 joblib.dump(clf, "./model/train_model_v1.m")
@@ -75,7 +79,4 @@ score = clf.score(test_x, test_y)
 
 # import sklearn.preprocessing as preprocessing
 # 测试
-
-
-
-
+# 修改config文件
