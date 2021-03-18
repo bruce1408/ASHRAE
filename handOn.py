@@ -74,6 +74,7 @@ score = clf.score(test_x, test_y)
 # print("the result is: ", score)
 
 # import sklearn.preprocessing as preprocessing
+# 测试
 
 
 
